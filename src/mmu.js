@@ -88,10 +88,10 @@ function Mmu() {
         ram.write32(addr, val & 0xFFFF);
     }
     Mmu.prototype.read8 = function(addr) {
-        ram.readU8(addr);
+        return ram.readU8(addr);
     }
     Mmu.prototype.read32 = function(addr) {
-        ram.readU32(addr);
+        return ram.readU32(addr);
     }
     
     /* @todo sort out the proper MMU interface below */

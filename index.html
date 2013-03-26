@@ -74,8 +74,18 @@
             color: #999;
             width: 60px;
         }
-        div#program table tr.cur {
+        div#program table tr.pc {
+            background: #ccc;
+        }
+        div#program table tr.fetched {
+            background: #ddd;
+        }
+        div#program table tr.decoded {
+            background: #eee;
+        }
+        div#program table tr.lastexec {
             background: #ffa;
+            font-weight: bold;
         }
         /* Registers */
         div#registers div {
@@ -125,6 +135,7 @@
     <div id="container">
         <h1>Arm610 Emulator</h1>
         <ul class="menu">
+<!--            <li class="stepthrough">Step through</li> -->
             <li class="step">Step</li>
         </ul>
         <h2>State</h2>
@@ -142,6 +153,7 @@
     <script type="text/javascript" src="src/cpu.js"></script>
     <script type="text/javascript" src="src/debugger.js"></script>
     <script type="text/javascript">
+        var stepping = false;
         var arm610 = new Arm610();
         arm610.init();
         var armDebugger = new Debugger(arm610);
@@ -149,6 +161,17 @@
         
         $('li.step').click(function() {
             arm610.step();
+            armDebugger.update();
+            });
+
+        $('li.stepthrough').click(function() {
+            if (stepping) {
+                $(this).html('Step through');
+            } else {
+                $(this).html('Stop');
+            }
+            
+            arm610.run();
             armDebugger.update();
             });
     </script>

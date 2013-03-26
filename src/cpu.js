@@ -15,6 +15,11 @@ function Arm610() {
     var MODE_ABT    = 7;
     var MODE_UND    = 11;
     
+    var CPSR_V      = 0x10000000;
+    var CPSR_C      = 0x20000000;
+    var CPSR_Z      = 0x40000000;
+    var CPSR_N      = 0x80000000;
+    
     var R15_MASK    = 0xFFFFFFFC;
     
     // ---
@@ -38,6 +43,8 @@ function Arm610() {
             cpu.armRegs[15] = cpu.armRegs[15] + offset;
             cpu.fetched = null;
             cpu.decoded = null;
+            cpu.fetchedAddr = null;
+            cpu.decodedAddr = null;
             console.log('Branching to ' + cpu.armRegs[15]);
         },
         branchLink      : function(instruction, cpu) {
@@ -47,6 +54,8 @@ function Arm610() {
             cpu.armRegs[15] = cpu.armRegs[15] + offset;
             cpu.fetched = null;
             cpu.decoded = null;
+            cpu.fetchedAddr = null;
+            cpu.decodedAddr = null;
             console.log('Branching (with link) to ' + cpu.armRegs[15]);
         },
         dataOperation   : function(instruction, cpu) {
@@ -130,6 +139,7 @@ function Arm610() {
                     break;
                 case 0x4: // ADD - Rd:= Op1 + Op2
                     console.log('ADD - Rd:= Op1 + Op2');
+                    console.log(val1 + ' + ' + val2 + ' = ' + result + ' --> store in rd= ' + rd);
                     result = val1 + val2;
                     cpu.armRegs[rd] = result;
                     break;
@@ -201,15 +211,15 @@ function Arm610() {
                 // @todo
                 // Z
                 if (result == 0) {
-                    cpu.armRegs[16] = cpu.armRegs[16] | 0x40000000;
+                    cpu.armRegs[16] = cpu.armRegs[16] | CPSR_Z;
                 } else {
-                    cpu.armRegs[16] = cpu.armRegs[16] & ~0x40000000;
+                    cpu.armRegs[16] = cpu.armRegs[16] & ~CPSR_Z;
                 }
                 // N
-                if (result & 0x80000000 > 0) {
-                    cpu.armRegs[16] = cpu.armRegs[16] | 0x80000000;
+                if ((result & 0x80000000) != 0) {
+                    cpu.armRegs[16] = cpu.armRegs[16] | CPSR_N;
                 } else {
-                    cpu.armRegs[16] = cpu.armRegs[16] & ~0x80000000;
+                    cpu.armRegs[16] = cpu.armRegs[16] & ~CPSR_N;
                 }
             }
         },
@@ -280,22 +290,22 @@ function Arm610() {
                 if (byteWord == 0) {
                     // word
                     cpu.mmu.write32(addr, cpu.armRegs[rd]);
-                    console.log('Store word ' + addr + ' -> reg#' + rd);
+                    console.log('Store word ' + addr + ' (' + cpu.armRegs[rd] + ') <- reg#' + rd);
                 } else {
                     // byte
                     cpu.mmu.write8(addr, cpu.armRegs[rd]);
-                    console.log('Store byte ' + addr + ' -> reg#' + rd);
+                    console.log('Store byte ' + addr + ' (' + cpu.armRegs[rd] + ') <- reg#' + rd);
                 }
             } else {
                 // load
                 if (byteWord == 0) {
                     // word
                     cpu.armRegs[rd] = cpu.mmu.read32(addr);
-                    console.log('Read word ' + addr + ' <- reg#' + rd);
+                    console.log('Read word ' + addr + ' (' + cpu.armRegs[rd] + ') -> reg#' + rd);
                 } else {
                     // byte
                     cpu.armRegs[rd] = cpu.mmu.read8(addr);
-                    console.log('Read byte ' + addr + ' <- reg#' + rd);
+                    console.log('Read byte ' + addr + ' (' + cpu.armRegs[rd] + ') -> reg#' + rd);
                 }
             }
             
@@ -391,40 +401,40 @@ function Arm610() {
         var psr = cpu.armRegs[16];
         switch ((instruction >> 28) & 0xF) {
             case 0x0: // EQ - Z set (equal)
-                return (psr & 0x40000000) != 0;
+                return (psr & CPSR_Z) != 0;
             case 0x1: // NE - Z clear (not equal)
-                return (psr & 0x40000000) == 0;
+                return (psr & CPSR_Z) == 0;
             case 0x2: // CS - C set (unsigned higher or same)
-                return (psr & 0x20000000) != 0;
+                return (psr & CPSR_C) != 0;
             case 0x3: // CC - C clear (unsigned lower)
-                return (psr & 0x20000000) == 0;
+                return (psr & CPSR_C) == 0;
             case 0x4: // MI - N set (negative)
-                return (psr & 0x80000000) != 0;
+                return (psr & CPSR_N) != 0;
             case 0x5: // PL - N clear (positive or zero)
-                return (psr & 0x80000000) == 0;
+                return (psr & CPSR_N) == 0;
             case 0x6: // VS - V set (overflow)
-                return (psr & 0x10000000) != 0;
+                return (psr & CPSR_V) != 0;
             case 0x7: // VC - V clear (no overflow)
-                return (psr & 0x10000000) == 0;
+                return (psr & CPSR_V) == 0;
             case 0x8: // HI - C set and Z clear (unsigned higher)
-                return (psr & 0x20000000) != 0 && (psr & 0x40000000) == 0;
+                return (psr & CPSR_C) != 0 && (psr & CPSR_Z) == 0;
             case 0x9: // LS - C clear or Z set (unsigned lower or same)
-                return (psr & 0x20000000) == 0 || (psr & 0x40000000) != 0;
+                return (psr & CPSR_C) == 0 || (psr & CPSR_Z) != 0;
             case 0xA: // GE - N set and V set, or N clear and V clear (greater or equal)
-                return ((psr & 0x80000000) != 0 && (psr & 0x10000000) != 0)
-                    || ((psr & 0x80000000) == 0 && (psr & 0x10000000) == 0);
+                return ((psr & CPSR_N) != 0 && (psr & CPSR_V) != 0)
+                    || ((psr & CPSR_N) == 0 && (psr & CPSR_V) == 0);
             case 0xB: // LT - N set and V clear, or N clear and V set (less than)
-                return ((psr & 0x80000000) != 0 && (psr & 0x10000000) == 0)
-                    || ((psr & 0x80000000) == 0 && (psr & 0x10000000) != 0);
+                return ((psr & CPSR_N) != 0 && (psr & CPSR_V) == 0)
+                    || ((psr & CPSR_N) == 0 && (psr & CPSR_V) != 0);
             case 0xC: // GT - Z clear, and either N set and V set, or N clear and V clear (greater than)
-                return (psr & 0x40000000) == 0 && (
-                           ((psr & 0x80000000) != 0 && (psr & 0x10000000) != 0)
-                        || ((psr & 0x80000000) == 0 && (psr & 0x10000000) == 0)
+                return (psr & CPSR_Z) == 0 && (
+                           ((psr & CPSR_N) != 0 && (psr & CPSR_V) != 0)
+                        || ((psr & CPSR_N) == 0 && (psr & CPSR_V) == 0)
                     );
             case 0xD: // LE - Z set, or N set and V clear, or N clear and V set (less than or equal)
-                return (psr & 0x40000000) != 0
-                    || ((psr & 0x80000000) != 0 && (psr & 0x10000000) == 0)
-                    || ((psr & 0x80000000) == 0 && (psr & 0x10000000) != 0);
+                return (psr & CPSR_Z) != 0
+                    || ((psr & CPSR_N) != 0 && (psr & CPSR_V) == 0)
+                    || ((psr & CPSR_N) == 0 && (psr & CPSR_V) != 0);
             case 0xE: // AL - always 1111
                 return true;
             case 0xF: // NV - never (not defined for ARM610)
@@ -437,6 +447,7 @@ function Arm610() {
     this.cpu        = new Cpu();
 
     function Cpu() {
+        this.cycles      = 0;
         this.mmu         = new Mmu();
         
         this.mode        = null;
@@ -464,7 +475,10 @@ function Arm610() {
 
         /* pipeline */
         this.fetched     = null;
+        this.fetchedAddr = null;
         this.decoded     = null;
+        this.decodedAddr = null;
+        this.lastExcAddr = null;
     }
     
     Cpu.prototype.updateMode = function(newMode) {
@@ -532,20 +546,22 @@ function Arm610() {
 
     Cpu.prototype.reset = function() {
         this.mode = MODE_SVC;
+        this.cycles = 0;
     }
     
-    Cpu.prototype.fetchInstruction = function() {
-        
-    }
-
     Cpu.prototype.run = function(cycles) {
         var toExecute;
 
         for (c=0; c<cycles; c++) {
+            this.cycles++;
+
             // pipeline
             toExecute = this.decoded;
+            this.lastExcAddr = this.decodedAddr;
             this.decoded = this.fetched;
+            this.decodedAddr = this.fetchedAddr;
             this.fetched = this.mmu.fetchInstruction(this.armRegs[15]);
+            this.fetchedAddr = this.armRegs[15];
             
             // increment addr
             this.armRegs[15] += 4;
@@ -636,6 +652,18 @@ function Arm610() {
             0x08d08de2,
             0x0ef0a0e1
             ];
+        /* handcrafted cruft */
+        /*
+        var prog = [
+            0x0000a0e3,
+            0x0010a0e3,
+            0x0130a0e3,
+            0x031081e0,
+            0x010080e0,
+            0x630051e3,
+            0xfaffffda
+        ];
+        */
          
         this.cpu.mmu.load(prog);
         

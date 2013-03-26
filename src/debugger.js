@@ -4,12 +4,15 @@ function Debugger(arm610) {
     
     Debugger.prototype.update = function() {
         var pc = this.arm610.cpu.armRegs[15];
+        var fetchedAddr = this.arm610.cpu.fetchedAddr;
+        var decodedAddr = this.arm610.cpu.decodedAddr;
+        var lastExcAddr = this.arm610.cpu.lastExcAddr;
         var armRegs = this.arm610.cpu.armRegs;
         var bankedRegs = this.arm610.cpu.bankedRegs;
 
         renderStateTable(this.arm610.cpu);
         renderRegistersTable(armRegs, bankedRegs);
-        renderProgramTable(pc);
+        renderProgramTable(pc, fetchedAddr, decodedAddr, lastExcAddr);
         renderMemoryTable(0);
     }
     
@@ -33,7 +36,7 @@ function Debugger(arm610) {
         $('div#memory').html(rendered);
     }
     
-    function renderProgramTable(pc) {
+    function renderProgramTable(pc, fetchedAddr, decodedAddr, lastExcAddr) {
         var start = pc - 10*4;
         var end = pc + 20*4;
         if (start < 0) {
@@ -45,7 +48,13 @@ function Debugger(arm610) {
             val = arm610.inspect(addr);
             rowClass = '';
             if (addr == pc) {
-                rowClass = ' class="cur"';
+                rowClass = ' class="pc"';
+            } else if (addr == fetchedAddr) {
+                rowClass = ' class="fetched"';
+            } else if (addr == decodedAddr) {
+                rowClass = ' class="decoded"';
+            } else if (addr == lastExcAddr) {
+                rowClass = ' class="lastexec"';
             }
             diss = dissassemble(addr, val);
             rendered += '<tr' + rowClass + '>';
@@ -552,6 +561,7 @@ function Debugger(arm610) {
     
     function renderStateTable(cpu) {
         var rendered = '<dl>';
+        rendered += '<dt>Cycles</dt><dd>' + cpu.cycles + '</dd>';
         rendered += '<dt>Mode</dt><dd>' + cpu.getMode() + '</dd>';
         rendered += '<dt>PC</dt><dd>0x' + toHex(cpu.armRegs[15], 32) + '</dd>';
         rendered += '<dt>Fetched</dt><dd>0x' + toHex(cpu.fetched, 32) + '</dd>';
