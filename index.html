@@ -9,6 +9,9 @@
             margin: 0 auto;
             padding: 20px 0;
         }
+        p {
+            padding: 8px 0 0;
+        }
         h1,h2,h3,h4,h5,h6 {
             font-family: helvetica;
             padding: 20px 0 6px 0;
@@ -135,6 +138,11 @@
 <body>
     <div id="container">
         <h1>Arm610 Emulator</h1>
+        <p>A very incomplete ARM610 emulator written in JS. The yellow highlighted
+            entry in the program block is the last instruction executed. The
+            darkest grey is the current Program Counter (PC) and the other
+            shades show the pipeline (fetch, decode).</p>
+            <p><a href="https://github.com/davegardnerisme/arm610">https://github.com/davegardnerisme/arm610</a></p>
         <ul class="menu">
             <li class="step">Step</li>
             <li class="stepthrough">Run</li>

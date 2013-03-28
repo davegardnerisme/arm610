@@ -21,6 +21,8 @@ The resources I'm working from include:
  - http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-The-CPU
  - http://ejohn.org/apps/learn/#67
  - http://www.coranac.com/tonc/text/asm.htm
+ - http://arcem.sourceforge.net/
+ - http://marutan.net/rpcemuspoon/
 
 
 ### Progress
@@ -35,10 +37,15 @@ manually loading in a program at address 0 and specifying an arbitrary
 memory location for the stack pointer (R13). This seems to be the minimum
 needed for the [ARM Procedure Call Standard](http://infocenter.arm.com/help/topic/com.arm.doc.ihi0042d/IHI0042D_aapcs.pdf)
 (which I guess GCC is adhering to). I turned off the use of a Frame Pointer
-until I figure out exactly what that is.
+until I figure out exactly what that is. When the program runs out of
+instructions the PC will just continue cycling through 0x0 instructions,
+probably until bad things happen.
 
-The current program I'm trying to run is `count.c` (see below), which is close
-to executing but still doesn't quite run properly.
+The current program I'm trying to run is `count.c` which now works - ish. I've
+concentrated on building the features of the emulator needed to run just this
+program, so instructions or features not used by this program haven't been
+implemented yet. At this stage, with a limited prior knowledge of ARM, I found
+this to be a good approach to _getting something working_.
 
 
 ## Generating ARM610 code
