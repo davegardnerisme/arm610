@@ -40,6 +40,7 @@
             border-radius: 4px;
             background: #ddd;
             cursor: pointer;
+            margin-right: 10px;
         }
         
         /* Memory */
@@ -135,8 +136,8 @@
     <div id="container">
         <h1>Arm610 Emulator</h1>
         <ul class="menu">
-<!--            <li class="stepthrough">Step through</li> -->
             <li class="step">Step</li>
+            <li class="stepthrough">Run</li>
         </ul>
         <h2>State</h2>
         <div id="state"></div>
@@ -159,20 +160,62 @@
         var armDebugger = new Debugger(arm610);
         armDebugger.update();
         
+        // http://paulirish.com/2011/requestanimationframe-for-smart-animating/
+        // http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
+
+        // requestAnimationFrame polyfill by Erik Möller
+        // fixes from Paul Irish and Tino Zijdel
+        (function () {
+          var lastTime = 0;
+          var vendors = ['ms', 'moz', 'webkit', 'o'];
+          var x;
+          for (x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+            window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
+             window.cancelAnimationFrame = window[vendors[x]+'CancelAnimationFrame'] ||
+                                           window[vendors[x]+'CancelRequestAnimationFrame'];
+          }
+
+          if (!window.requestAnimationFrame) {
+            window.requestAnimationFrame = function (callback, element) {
+                var currTime = new Date().getTime();
+                var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+                var id = window.setTimeout(function () { callback(currTime + timeToCall); },
+                  timeToCall);
+                lastTime = currTime + timeToCall;
+                return id;
+            };
+          }
+
+          if (!window.cancelAnimationFrame) {
+            window.cancelAnimationFrame = function (id) {
+                 clearTimeout(id);
+            };
+          }
+        }());
+        
+        function animationFrame() {
+            if (stepping) {
+                requestAnimationFrame(animationFrame);
+            }
+            arm610.step();
+            armDebugger.update();            
+        }
+
         $('li.step').click(function() {
             arm610.step();
             armDebugger.update();
             });
 
         $('li.stepthrough').click(function() {
+            stepping = !stepping;
             if (stepping) {
-                $(this).html('Step through');
+                $(this).html('Pause');
             } else {
-                $(this).html('Stop');
+                $(this).html('Run');
             }
-            
-            arm610.run();
-            armDebugger.update();
+            if (stepping) {
+                requestAnimationFrame(animationFrame);
+            }            
             });
     </script>
 </body>

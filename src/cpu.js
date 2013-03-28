@@ -679,6 +679,3 @@ function Arm610() {
         return this.cpu.run(1);
     }
 }
-
-
-
